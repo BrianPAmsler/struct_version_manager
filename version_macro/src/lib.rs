@@ -29,7 +29,7 @@ mod version {
 
             // Force minor version to be 10 digits so that leading zeroes are dealt with
             let mut minor = minor.to_owned() + VERSION_PAD;
-            minor.truncate(10);
+            minor.truncate(VERSION_PAD.len() + 1);
 
             let major_int: u64 = major.parse().expect("Invalid version string");
             let minor_int: u64 = minor.parse().expect("Invalid version string");
