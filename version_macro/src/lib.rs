@@ -29,7 +29,7 @@ mod version {
 
             // Force minor version to be 10 digits so that leading zeroes are dealt with
             let mut minor = minor.to_owned() + VERSION_PAD;
-            minor.truncate(VERSION_PAD.len() + 1);
+            minor.truncate(10);
 
             let major_int: u64 = major.parse().expect("Invalid version string");
             let minor_int: u64 = minor.parse().expect("Invalid version string");
@@ -138,9 +138,9 @@ fn find_upgrade_path(from: Version, to: Version, info: &HashMap<Version, StructI
     // bfs
     q.push_back(vec![from]);
     while q.len() > 0 {
-        let path = q.pop_front().expect("Failed unwrap on line " + line!());
+        let path = q.pop_front().expect(&format!("Failed to unwrap on line {}", line!()));
 
-        let inf = &info[path.iter().last().expect("Failed unwrap on line " + line!())];
+        let inf = &info[path.iter().last().expect(&format!("Failed to unwrap on line {}", line!()))];
         for cnv in &inf.converts_to {
             let mut new_path = path.clone();
             new_path.push(*cnv);
@@ -157,14 +157,14 @@ fn find_upgrade_path(from: Version, to: Version, info: &HashMap<Version, StructI
 }
 
 fn generate_upgrade_code(path: &Box<[Version]>, ident: &str, info: &HashMap<Version, StructInfo>) -> TokenStream {
-    let ident_t: proc_macro2::TokenStream = ident.parse().expect("Failed unwrap on line " + line!());
+    let ident_t: proc_macro2::TokenStream = ident.parse().expect(&format!("Failed to unwrap on line {}", line!()));
 
-    let end_type: proc_macro2::TokenStream = ("super::".to_owned() + info[path.iter().last().expect("Failed unwrap on line " + line!())].v_mod.as_str() + "::" + ident).parse().expect("Failed unwrap on line " + line!());
+    let end_type: proc_macro2::TokenStream = ("super::".to_owned() + info[path.iter().last().expect(&format!("Failed to unwrap on line {}", line!()))].v_mod.as_str() + "::" + ident).parse().expect(&format!("Failed to unwrap on line {}", line!()));
     let mut stream = quote!{};
 
     // let start = &info[&path[0]];
     for node in path[1..].iter() {
-        let next_type: proc_macro2::TokenStream = ("super::".to_owned() + info[node].v_mod.as_str() + "::" + ident).parse().expect("Failed unwrap on line " + line!());
+        let next_type: proc_macro2::TokenStream = ("super::".to_owned() + info[node].v_mod.as_str() + "::" + ident).parse().expect(&format!("Failed to unwrap on line {}", line!()));
         let code = quote!{
             let u: #next_type = u.convert_to();
         };
@@ -186,7 +186,7 @@ fn generate_upgrade_code(path: &Box<[Version]>, ident: &str, info: &HashMap<Vers
 
 #[proc_macro_attribute]
 pub fn version_mod(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let ast: syn::Item = syn::parse(item).expect("Failed unwrap on line " + line!());
+    let ast: syn::Item = syn::parse(item).expect(&format!("Failed to unwrap on line {}", line!()));
     let mut m = match ast {
         syn::Item::Mod(m) => m,
         _ => {panic!("Must be used on a module!")}
@@ -209,19 +209,19 @@ pub fn version_mod(attr: TokenStream, item: TokenStream) -> TokenStream {
         })
         .collect();
 
-    let newest = structs.values().max_by(|a, b| a.version.cmp(&b.version)).expect("Failed unwrap on line " + line!());
+    let newest = structs.values().max_by(|a, b| a.version.cmp(&b.version)).expect(&format!("Failed to unwrap on line {}", line!()));
 
     let versions: Vec<Version> = structs.iter().map(|x| *x.0).collect();
     for v in versions {
         if v != newest.version {
             let path = find_upgrade_path(v, newest.version, &structs);
 
-            let code: syn::Item = syn::parse(generate_upgrade_code(&path, struct_ident.as_str(), &structs)).expect("Failed unwrap on line " + line!());
+            let code: syn::Item = syn::parse(generate_upgrade_code(&path, struct_ident.as_str(), &structs)).expect(&format!("Failed to unwrap on line {}", line!()));
 
             let info = &structs[&v];
-            let m = mods.get_mut(&info.v_mod).expect("Failed unwrap on line " + line!());
+            let m = mods.get_mut(&info.v_mod).expect(&format!("Failed to unwrap on line {}", line!()));
 
-            m.content.as_mut().expect("Failed unwrap on line " + line!()).1.push(code);
+            m.content.as_mut().expect(&format!("Failed to unwrap on line {}", line!())).1.push(code);
         }
     }
 
@@ -229,9 +229,9 @@ pub fn version_mod(attr: TokenStream, item: TokenStream) -> TokenStream {
         pub fn hello() {
             println!("Hello World!");
         }
-    }).expect("Failed unwrap on line " + line!());
+    }).expect(&format!("Failed to unwrap on line {}", line!()));
 
-    m.content.as_mut().expect("Failed unwrap on line " + line!()).1.push(code);
+    m.content.as_mut().expect(&format!("Failed to unwrap on line {}", line!())).1.push(code);
 
     m.to_token_stream().into()
 }
